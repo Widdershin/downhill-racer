@@ -15,6 +15,7 @@ class HelloWorld extends Sprite {
   var pixels : ByteArray;
   var stageWidth : Int;
   var laneMarkingOffsetY : Float = 0;
+  var skyBlue : Int;
 
   public function new() {
     super();
@@ -31,6 +32,8 @@ class HelloWorld extends Sprite {
     rect = bitmapData.rect;
     var size : Int = bitmapData.width * bitmapData.height * 4;
 
+    skyBlue = rgbaToHex(80, 0, 255, 255);
+
     pixels = new ByteArray();
 
     pixels.setLength(size);
@@ -41,26 +44,36 @@ class HelloWorld extends Sprite {
     var stage = Lib.current.stage;
 
     var centerX = stageWidth / 2;
-    var roadWidth : Float = 300;
+    var roadWidth : Float = stageWidth;
     var laneMarkingWidth = 8;
     var laneMarkingHeight = 70;
 
     laneMarkingOffsetY += 3;
 
-    for (y in 0...stage.stageHeight) {
-      roadWidth -= 0.1;
+    for (y in 0...Math.floor(stage.stageHeight / 2)) {
+      roadWidth -= 2.5;
+
       for (x in 0...stage.stageWidth) {
         var r = 0;
         var g = 200;
         var b = 0;
 
-        if (x > centerX - (roadWidth / 2) && x < centerX + (roadWidth / 2)) {
+        var pixelIsRoad = x > centerX - (roadWidth / 2) && x < centerX + (roadWidth / 2);
+
+        var laneMarkingLeftBoundary = centerX - (laneMarkingWidth / 2 - y / 100);
+        var laneMarkingRightBoundary = centerX + (laneMarkingWidth / 2 - y / 100);
+
+        var isInLaneMarking = ((laneMarkingOffsetY + y) % laneMarkingHeight) < laneMarkingHeight / 2;
+
+        var pixelIsLaneMarking = x > laneMarkingLeftBoundary && x < laneMarkingRightBoundary && isInLaneMarking;
+
+        if (pixelIsRoad) {
           r = 80;
           g = 80;
           b = 80;
         }
 
-        if (x > centerX - (laneMarkingWidth / 2) && x < centerX + (laneMarkingWidth / 2) && (laneMarkingOffsetY + y) % laneMarkingHeight < laneMarkingHeight / 2) {
+        if (pixelIsLaneMarking) {
           r = 255;
           g = 255;
           b = 255;
@@ -71,8 +84,11 @@ class HelloWorld extends Sprite {
       }
     }
 
-    pixels.position = 0;
-    bitmapData.setPixels(rect, pixels);
+    for (y in Math.floor(stage.stageHeight / 2)...stage.stageHeight) {
+      for (x in 0...stage.stageWidth) {
+        Memory.setI32(((stage.stageHeight - y) * stageWidth + x) * 4, skyBlue);
+      }
+    }
 
     pixels.position = 0;
     bitmapData.setPixels(rect, pixels);
