@@ -1,14 +1,14 @@
-import nme.display.Sprite;
-import nme.display.Bitmap;
-import nme.display.BitmapData;
-import nme.events.Event;
-import nme.events.KeyboardEvent;
-import nme.utils.ByteArray;
-import nme.geom.Rectangle;
-import nme.Lib;
-import nme.Memory;
+import openfl.display.Sprite;
+import openfl.display.Bitmap;
+import openfl.display.BitmapData;
+import openfl.events.Event;
+import openfl.events.KeyboardEvent;
+import openfl.utils.ByteArray;
+import openfl.geom.Rectangle;
+import openfl.Lib;
+import openfl.Memory;
 
-class HelloWorld extends Sprite {
+class Main extends Sprite {
   var rectX : Int = 10;
   var bitmapData: BitmapData;
   var rect : Rectangle;
@@ -23,7 +23,7 @@ class HelloWorld extends Sprite {
     var stage = Lib.current.stage;
     stageWidth = stage.stageWidth;
 
-    Lib.current.addChild(new nme.display.FPS());
+    Lib.current.addChild(new openfl.display.FPS());
     //stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDown);
     addEventListener(Event.ENTER_FRAME, update);
     bitmapData = new BitmapData(stage.stageWidth, stage.stageHeight);
@@ -32,11 +32,10 @@ class HelloWorld extends Sprite {
     rect = bitmapData.rect;
     var size : Int = bitmapData.width * bitmapData.height * 4;
 
-    skyBlue = rgbaToHex(80, 0, 255, 255);
+    skyBlue = rgbaToHex(0, 80, 255, 255);
 
-    pixels = new ByteArray();
+    pixels = new ByteArray(size);
 
-    pixels.setLength(size);
     Memory.select(pixels);
   }
 
@@ -79,8 +78,7 @@ class HelloWorld extends Sprite {
           b = 255;
         }
 
-                                                        //G R L B
-        Memory.setI32(((stage.stageHeight - y) * stageWidth + x) * 4, rgbaToHex(g, r, 255, b));
+        Memory.setI32(((stage.stageHeight - y) * stageWidth + x) * 4, rgbaToHex(r, g, b, 255));
       }
     }
 
