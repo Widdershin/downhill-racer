@@ -1,13 +1,16 @@
 import openfl.display.Sprite;
 import openfl.display.Bitmap;
 import openfl.display.BitmapData;
+import openfl.display.Shape;
 import openfl.events.Event;
 import openfl.events.KeyboardEvent;
+import openfl.ui.Keyboard;
 import openfl.utils.ByteArray;
 import openfl.geom.Rectangle;
 import openfl.Lib;
 import openfl.Memory;
 import openfl.Assets;
+import openfl.Vector;
 
 class Main extends Sprite {
   var rectX : Int = 10;
@@ -17,27 +20,54 @@ class Main extends Sprite {
   var stageWidth : Int;
   var laneMarkingOffsetY : Float = 0;
   var skyBlue : Int;
+  var fov : Int = 40;
+  var cameraDepth : Float;
+  var cameraHeight : Int = -250;
+  var segments = [];
+  var centerX : Float;
+  var road : Shape;
+  var skaterX : Float = 1;
+  var skaterZ : Float = 0;
 
   public function new() {
     super();
 
+    var segmentLength = 100;
+
+    for (n in 0...100) {
+      segments.push({
+        index: n,
+
+        startZ: n * segmentLength,
+        endZ: (n + 1) * segmentLength,
+        projection: {
+          start: {
+            x: 0,
+            y: 0,
+            width: 0
+          },
+          end: {
+            x: 0,
+            y: 0,
+            width: 0
+          }
+        }
+      });
+    }
+
     var stage = Lib.current.stage;
     stageWidth = stage.stageWidth;
 
+    cameraDepth = 1 / Math.tan(fov / 2);
+    centerX = stageWidth / 2;
+
+    road = new Shape();
+    addChild(road);
+
     Lib.current.addChild(new openfl.display.FPS());
-    //stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDown);
-    addEventListener(Event.ENTER_FRAME, update);
-    bitmapData = new BitmapData(stage.stageWidth, stage.stageHeight);
-    addChild(new Bitmap(bitmapData));
-
-    rect = bitmapData.rect;
-    var size : Int = bitmapData.width * bitmapData.height * 4;
-
+    stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDown);
+    addEventListener(Event.ENTER_FRAME, render);
     skyBlue = rgbaToHex(0, 80, 255, 255);
-
-    pixels = new ByteArray(size);
-
-    Memory.select(pixels);
 
     var skaterBitmap = Assets.getBitmapData('assets/skater.png');
     var skater = new Bitmap(skaterBitmap);
@@ -49,7 +79,98 @@ class Main extends Sprite {
     skater.y = stage.stageHeight - 270;
   }
 
-  private function update(event: Event) {
+  private function render (event: Event) {
+    // render the sky
+    // for each segment
+      // render the segment
+
+    skaterZ += 20;
+
+    graphics.clear();
+
+    graphics.beginFill(0x5500FF);
+    graphics.drawRect(0, 0, stage.stageWidth, stage.stageHeight / 2);
+
+    graphics.beginFill(0x00AA00);
+    graphics.drawRect(0, stage.stageHeight / 2, stage.stageWidth, stage.stageHeight);
+
+    road.graphics.clear();
+
+    for (segment in segments) {
+      drawSegment(segment);
+    }
+  }
+
+  private function drawSegment (segment) {
+    var roadWidth = 500;
+
+    segment.index;
+
+    var color;
+
+    switch (segment.index % 2 == 0) {
+      case true: {
+        color = 0x777777;
+      }
+
+      case false: {
+        color = 0x555555;
+      }
+    }
+
+    project(
+      segment.projection.start,
+      segment.startZ,
+      -roadWidth / 2 * skaterX,
+      cameraHeight,
+      skaterZ,
+      cameraDepth,
+      stage.stageWidth,
+      stage.stageHeight,
+      roadWidth
+    );
+
+    project(
+      segment.projection.end,
+      segment.endZ,
+      -roadWidth / 2 * skaterX,
+      cameraHeight,
+      skaterZ,
+      cameraDepth,
+      stage.stageWidth,
+      stage.stageHeight,
+      roadWidth
+    );
+
+    var startProjection = segment.projection.start;
+    var endProjection = segment.projection.end;
+
+    if (startProjection.x < 0 || startProjection.y < 0 || startProjection.width < 0) {
+      return;
+    }
+
+    if (endProjection.x < 0 || endProjection.y < 0 || endProjection.width < 0) {
+      return;
+    }
+
+    road.graphics.lineStyle();
+    road.graphics.beginFill(color);
+    road.graphics.moveTo(startProjection.x, startProjection.y);
+    road.graphics.lineTo(endProjection.x, endProjection.y);
+    road.graphics.lineTo(endProjection.x + endProjection.width, endProjection.y);
+    road.graphics.lineTo(startProjection.x + startProjection.width, startProjection.y);
+    road.graphics.lineTo(startProjection.x, startProjection.y);
+    road.graphics.endFill();
+
+    road.graphics.lineStyle(2, 0x00);
+    road.graphics.moveTo(startProjection.x, startProjection.y);
+    road.graphics.lineTo(endProjection.x, endProjection.y);
+
+    road.graphics.moveTo(startProjection.x + startProjection.width, startProjection.y);
+    road.graphics.lineTo(endProjection.x + endProjection.width, endProjection.y);
+  }
+
+  private function _update(event: Event) {
     var stage = Lib.current.stage;
 
     var centerX = stageWidth / 2;
@@ -103,7 +224,27 @@ class Main extends Sprite {
     bitmapData.setPixels(rect, pixels);
   }
 
+  private function project (projection, z, cameraX : Float, cameraY, cameraZ : Float, cameraDepth : Float, width, height, roadWidth) {
+    var scale = cameraDepth / (z - cameraZ);
+
+    projection.x = Math.floor((width / 2) + (scale * cameraX * width / 2));
+    projection.y = Math.floor((height / 2) - (scale * cameraY * height / 2));
+    projection.width = Math.floor(scale * roadWidth * width / 2);
+  }
+
+  private function keyDown (event: KeyboardEvent) {
+    switch (event.keyCode) {
+      case (Keyboard.A): {
+        skaterX -= 0.03;
+      }
+
+      case (Keyboard.D): {
+        skaterX += 0.03;
+      }
+    };
+  }
+
   private function rgbaToHex(R: Int, G: Int, B: Int, A: Int): Int {
-    return (A & 0xFF) << 24 | (R & 0xFF) << 16 | (G & 0xFF) << 8 | (B & 0xFF);
+    return (R & 0xFF) << 16 | (G & 0xFF) << 8 | (B & 0xFF);
   }
 }
