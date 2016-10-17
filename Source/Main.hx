@@ -12,6 +12,27 @@ import openfl.Memory;
 import openfl.Assets;
 import openfl.Vector;
 
+typedef Segment = {
+  index: Int,
+  curve: Int,
+
+  startZ: Int,
+  endZ: Int,
+
+  projection: SegmentProjection
+}
+
+typedef SegmentProjection = {
+  start: Projection,
+  end: Projection
+}
+
+typedef Projection = {
+  x: Int,
+  y: Int,
+  width: Int
+}
+
 class Main extends Sprite {
   var rectX : Int = 10;
   var bitmapData: BitmapData;
@@ -23,7 +44,7 @@ class Main extends Sprite {
   var fov : Int = 40;
   var cameraDepth : Float;
   var cameraHeight : Int = -248;
-  var segments = [];
+  var segments = new Array<Segment>();
   var centerX : Float;
   var road : Shape;
   var skaterX : Float = 1;
@@ -97,7 +118,11 @@ class Main extends Sprite {
     // for each segment
       // render the segment
 
-    skaterZ += 20;
+    if (skaterX > 2 || skaterX < 0) {
+      skaterZ += 2;
+    } else {
+      skaterZ += 20;
+    }
 
     graphics.clear();
 
@@ -194,6 +219,12 @@ class Main extends Sprite {
     projection.x = Math.round((width / 2) + (scale * cameraX * width / 2));
     projection.y = Math.round((height / 2) - (scale * cameraY * height / 2));
     projection.width = Math.round(scale * roadWidth * width / 2);
+
+    if (Math.abs(projection.x) + Math.abs(projection.y) + Math.abs(projection.width) > 16000) {
+      projection.x = 0;
+      projection.y = stage.stageHeight;
+      projection.width = 0;
+    }
   }
 
   private function keyDown (event: KeyboardEvent) {
