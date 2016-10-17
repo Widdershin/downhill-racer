@@ -7,6 +7,7 @@ import openfl.utils.ByteArray;
 import openfl.geom.Rectangle;
 import openfl.Lib;
 import openfl.Memory;
+import openfl.Assets;
 
 class Main extends Sprite {
   var rectX : Int = 10;
@@ -37,6 +38,15 @@ class Main extends Sprite {
     pixels = new ByteArray(size);
 
     Memory.select(pixels);
+
+    var skaterBitmap = Assets.getBitmapData('assets/skater.png');
+    var skater = new Bitmap(skaterBitmap);
+    addChild(skater);
+
+    skater.scaleX = 4.0;
+    skater.scaleY = 4.0;
+    skater.x = stage.stageWidth / 2 - skaterBitmap.width * 2.05;
+    skater.y = stage.stageHeight - 270;
   }
 
   private function update(event: Event) {
@@ -46,8 +56,9 @@ class Main extends Sprite {
     var roadWidth : Float = stageWidth;
     var laneMarkingWidth = 8;
     var laneMarkingHeight = 70;
+    var yWorld = -10;
 
-    laneMarkingOffsetY += 3;
+    laneMarkingOffsetY += 5;
 
     for (y in 0...Math.floor(stage.stageHeight / 2)) {
       roadWidth -= 2.5;
