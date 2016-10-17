@@ -22,21 +22,34 @@ class Main extends Sprite {
   var skyBlue : Int;
   var fov : Int = 40;
   var cameraDepth : Float;
-  var cameraHeight : Int = -250;
+  var cameraHeight : Int = -248;
   var segments = [];
   var centerX : Float;
   var road : Shape;
   var skaterX : Float = 1;
   var skaterZ : Float = 0;
+  var segmentLength : Int = 100;
 
   public function new() {
     super();
 
-    var segmentLength = 100;
+    for (n in 1...200) {
+      var curve;
 
-    for (n in 0...100) {
+      if (n < 50) {
+        curve = 5;
+      } else {
+        curve = -5;
+      };
+
+      if (n > 100) {
+        curve = 0;
+      }
+
       segments.push({
         index: n,
+
+        curve: curve,
 
         startZ: n * segmentLength,
         endZ: (n + 1) * segmentLength,
@@ -96,15 +109,28 @@ class Main extends Sprite {
 
     road.graphics.clear();
 
-    for (segment in segments) {
-      drawSegment(segment);
+    var x = 0;
+    var dx = 0;
+
+    var currentSegmentIndex = Math.floor(skaterZ / segmentLength);
+    var currentSegment = segments[currentSegmentIndex];
+
+    skaterX += currentSegment.curve / 1000;
+
+    for (segmentIndex in (currentSegmentIndex...(segments.length - 1))) {
+      var segment = segments[segmentIndex];
+
+      drawSegment(segment, x, dx);
+
+      x += dx;
+      dx += segment.curve;
     }
   }
 
-  private function drawSegment (segment) {
-    var roadWidth = 500;
+  private function drawSegment (segment, x, dx) {
+    var roadWidth = 700;
 
-    segment.index;
+    segment.curve;
 
     var color;
 
@@ -114,14 +140,14 @@ class Main extends Sprite {
       }
 
       case false: {
-        color = 0x555555;
+        color = 0x666666;
       }
     }
 
     project(
       segment.projection.start,
       segment.startZ,
-      -roadWidth / 2 * skaterX,
+      -roadWidth / 2 * skaterX - x,
       cameraHeight,
       skaterZ,
       cameraDepth,
@@ -133,7 +159,7 @@ class Main extends Sprite {
     project(
       segment.projection.end,
       segment.endZ,
-      -roadWidth / 2 * skaterX,
+      -roadWidth / 2 * skaterX - x - dx,
       cameraHeight,
       skaterZ,
       cameraDepth,
@@ -145,14 +171,6 @@ class Main extends Sprite {
     var startProjection = segment.projection.start;
     var endProjection = segment.projection.end;
 
-    if (startProjection.x < 0 || startProjection.y < 0 || startProjection.width < 0) {
-      return;
-    }
-
-    if (endProjection.x < 0 || endProjection.y < 0 || endProjection.width < 0) {
-      return;
-    }
-
     road.graphics.lineStyle();
     road.graphics.beginFill(color);
     road.graphics.moveTo(startProjection.x, startProjection.y);
@@ -162,7 +180,7 @@ class Main extends Sprite {
     road.graphics.lineTo(startProjection.x, startProjection.y);
     road.graphics.endFill();
 
-    road.graphics.lineStyle(2, 0x00);
+    road.graphics.lineStyle();
     road.graphics.moveTo(startProjection.x, startProjection.y);
     road.graphics.lineTo(endProjection.x, endProjection.y);
 
@@ -170,76 +188,22 @@ class Main extends Sprite {
     road.graphics.lineTo(endProjection.x + endProjection.width, endProjection.y);
   }
 
-  private function _update(event: Event) {
-    var stage = Lib.current.stage;
-
-    var centerX = stageWidth / 2;
-    var roadWidth : Float = stageWidth;
-    var laneMarkingWidth = 8;
-    var laneMarkingHeight = 70;
-    var yWorld = -10;
-
-    laneMarkingOffsetY += 5;
-
-    for (y in 0...Math.floor(stage.stageHeight / 2)) {
-      roadWidth -= 2.5;
-
-      for (x in 0...stage.stageWidth) {
-        var r = 0;
-        var g = 200;
-        var b = 0;
-
-        var pixelIsRoad = x > centerX - (roadWidth / 2) && x < centerX + (roadWidth / 2);
-
-        var laneMarkingLeftBoundary = centerX - (laneMarkingWidth / 2 - y / 100);
-        var laneMarkingRightBoundary = centerX + (laneMarkingWidth / 2 - y / 100);
-
-        var isInLaneMarking = ((laneMarkingOffsetY + y) % laneMarkingHeight) < laneMarkingHeight / 2;
-
-        var pixelIsLaneMarking = x > laneMarkingLeftBoundary && x < laneMarkingRightBoundary && isInLaneMarking;
-
-        if (pixelIsRoad) {
-          r = 80;
-          g = 80;
-          b = 80;
-        }
-
-        if (pixelIsLaneMarking) {
-          r = 255;
-          g = 255;
-          b = 255;
-        }
-
-        Memory.setI32(((stage.stageHeight - y) * stageWidth + x) * 4, rgbaToHex(r, g, b, 255));
-      }
-    }
-
-    for (y in Math.floor(stage.stageHeight / 2)...stage.stageHeight) {
-      for (x in 0...stage.stageWidth) {
-        Memory.setI32(((stage.stageHeight - y) * stageWidth + x) * 4, skyBlue);
-      }
-    }
-
-    pixels.position = 0;
-    bitmapData.setPixels(rect, pixels);
-  }
-
-  private function project (projection, z, cameraX : Float, cameraY, cameraZ : Float, cameraDepth : Float, width, height, roadWidth) {
+  private function project (projection, z, cameraX : Float, cameraY : Float, cameraZ : Float, cameraDepth : Float, width, height, roadWidth) {
     var scale = cameraDepth / (z - cameraZ);
 
-    projection.x = Math.floor((width / 2) + (scale * cameraX * width / 2));
-    projection.y = Math.floor((height / 2) - (scale * cameraY * height / 2));
-    projection.width = Math.floor(scale * roadWidth * width / 2);
+    projection.x = Math.round((width / 2) + (scale * cameraX * width / 2));
+    projection.y = Math.round((height / 2) - (scale * cameraY * height / 2));
+    projection.width = Math.round(scale * roadWidth * width / 2);
   }
 
   private function keyDown (event: KeyboardEvent) {
     switch (event.keyCode) {
       case (Keyboard.A): {
-        skaterX -= 0.03;
+        skaterX -= 0.05;
       }
 
       case (Keyboard.D): {
-        skaterX += 0.03;
+        skaterX += 0.05;
       }
     };
   }
